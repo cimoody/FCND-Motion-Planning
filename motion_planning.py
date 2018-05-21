@@ -4,6 +4,7 @@ import msgpack
 from enum import Enum, auto
 
 import numpy as np
+import visdom
 
 from planning_utils import a_star, heuristic, create_grid
 from udacidrone import Drone
@@ -27,6 +28,31 @@ class MotionPlanning(Drone):
     def __init__(self, connection):
         super().__init__(connection)
 
+        # Code for live plotting
+        # from
+        # https://udacity.github.io/udacidrone/docs/visdom-tutorial.html
+        # default opens up to http://localhost:8097
+        self.v = visdom.Visdom()
+        assert self.v.check_connection()
+
+        # Plot NE
+        ne = np.array([self.local_position[0], self.local_position[1]]).reshape(1, -1)
+        self.ne_plot = self.v.scatter(ne, opts=dict(
+            title="Local position (north, east)", 
+            xlabel='North', 
+            ylabel='East'
+        ))
+
+        # Plot D
+        d = np.array([self.local_position[2]])
+        self.t = 0
+        self.d_plot = self.v.line(d, X=np.array([self.t]), opts=dict(
+            title="Altitude (meters)", 
+            xlabel='Timestep', 
+            ylabel='Down'
+        ))
+
+        # Setting up drone
         self.target_position = np.array([0.0, 0.0, 0.0])
         self.waypoints = []
         self.in_mission = True
@@ -40,7 +66,29 @@ class MotionPlanning(Drone):
         self.register_callback(MsgID.LOCAL_VELOCITY, self.velocity_callback)
         self.register_callback(MsgID.STATE, self.state_callback)
 
+    def update_ne_plot(self):
+        """ 
+        Code for plotting position from
+        https://udacity.github.io/udacidrone/docs/visdom-tutorial.html
+        """
+        ne = np.array([self.local_position[0], self.local_position[1]]).reshape(1, -1)
+        self.v.scatter(ne, win=self.ne_plot, update='append')
+
+    def update_d_plot(self):
+        """
+        Code for plotting altitude from
+        https://udacity.github.io/udacidrone/docs/visdom-tutorial.html
+        """
+        d = np.array([self.local_position[2]])
+        # update timestep
+        self.t += 1
+        self.v.line(d, X=np.array([self.t]), win=self.d_plot, update='append')
+
+
     def local_position_callback(self):
+        """
+        Has drone pass through phases based on position
+        """
         if self.flight_state == States.TAKEOFF:
             if -1.0 * self.local_position[2] > 0.95 * self.target_position[2]:
                 self.waypoint_transition()
@@ -53,12 +101,18 @@ class MotionPlanning(Drone):
                         self.landing_transition()
 
     def velocity_callback(self):
+        """
+        Has drone land at last phases.
+        """
         if self.flight_state == States.LANDING:
             if self.global_position[2] - self.global_home[2] < 0.1:
                 if abs(self.local_position[2]) < 0.01:
                     self.disarming_transition()
 
     def state_callback(self):
+        """
+        Transitions between the different states.
+        """
         if self.in_mission:
             if self.flight_state == States.MANUAL:
                 self.arming_transition()
@@ -72,46 +126,75 @@ class MotionPlanning(Drone):
                     self.manual_transition()
 
     def arming_transition(self):
+        """
+        Initiates the arming transition.
+        """
         self.flight_state = States.ARMING
         print("arming transition")
         self.arm()
         self.take_control()
 
     def takeoff_transition(self):
+        """
+        Initiates the takeoff transition.
+        """
         self.flight_state = States.TAKEOFF
         print("takeoff transition")
         self.takeoff(self.target_position[2])
 
     def waypoint_transition(self):
+        """
+        Takes the top waypoint and sets it as the target position.
+        Then commands the drone to fly to the target position.
+        """
         self.flight_state = States.WAYPOINT
         print("waypoint transition")
         self.target_position = self.waypoints.pop(0)
         print('target position', self.target_position)
-        self.cmd_position(self.target_position[0], self.target_position[1], self.target_position[2], self.target_position[3])
+        self.cmd_position(self.target_position[0], self.target_position[1], 
+            self.target_position[2], self.target_position[3])
 
     def landing_transition(self):
+        """
+        Initiates the landing transition.
+        """
         self.flight_state = States.LANDING
         print("landing transition")
         self.land()
 
     def disarming_transition(self):
+        """
+        Initiates the disarming transition and releases control.
+        """
         self.flight_state = States.DISARMING
         print("disarm transition")
         self.disarm()
         self.release_control()
 
     def manual_transition(self):
+        """
+        Stops the drone.
+        """
         self.flight_state = States.MANUAL
         print("manual transition")
         self.stop()
         self.in_mission = False
 
     def send_waypoints(self):
+        """
+        Sends waypoints from self.waypoints to file, 
+        read through
+        https://github.com/msgpack/msgpack-python README
+        to understand msgpack
+        """
         print("Sending waypoints to simulator ...")
         data = msgpack.dumps(self.waypoints)
         self.connection._master.write(data)
 
     def plan_path(self):
+        """
+        Planning the path for the drone to take - still has a lot of work to complete.
+        """
         self.flight_state = States.PLANNING
         print("Searching for a path ...")
         TARGET_ALTITUDE = 5

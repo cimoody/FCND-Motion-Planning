@@ -89,6 +89,9 @@ def valid_actions(grid, current_node):
 
 
 def a_star(grid, h, start, goal):
+    """
+    Appears to find a path.
+    """
 
     path = []
     path_cost = 0
