@@ -116,6 +116,10 @@ def a_star(grid, h, start, goal):
     while not queue.empty():
         item = queue.get()
         current_node = item[1]
+        # print(" Current node:")
+        # print(type(current_node))
+        # print("  Start:")
+        # print(type(start))
         if current_node == start:
             current_cost = 0.0
         else:              
