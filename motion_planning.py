@@ -32,6 +32,8 @@ class MotionPlanning(Drone):
 
         # Setting up drone and things that may change
         self.filename = 'colliders.csv'
+        self.TARGET_ALTITUDE = 5
+        self.SAFETY_DISTANCE = 5
         self.target_position = np.array([0.0, 0.0, 0.0])
         self.local_home = np.array([0.0, 0.0, 0.0])
         self.waypoints = []
@@ -202,35 +204,42 @@ class MotionPlanning(Drone):
     #     local_position = np.array([north - north_home, east - east_home, -(self.global_position[2] - self.global_home[2])])
     #     return local_position
 
-    # def local_to_global(self):
+    # def local_to_global(self, east, north):
     #     (east_home, north_home, zone_number, zone_letter) = utm.from_latlon(
     #                                                     self.global_home[1], self.global_home[0])
-    #     (lat, lon) = utm.to_latlon(east_home + self.local_position[1],
-    #                            north_home + self.local_position[0], zone_number,
-    #                            zone_letter)
-    #     global_position = numpy.array([lon, lat, -(self.local_position[2]-self.global_home[2])])
+    #     (lat, lon) = utm.to_latlon(east + east_home, north + north_home, zone_number, zone_letter)
+    #     global_position = np.array([lon, lat, -(self.local_home[2] - self.global_home[2])])
     #     return global_position
 
-    def point(self, *p):
-        return np.array([p[0], p[1], 1.]).reshape(1, -1)
-
-    def collinearity_check(self, p1, p2, p3, epsilon=1e-2):
-        collinear = False
-        mat = np.vstack((self.point(p1), self.point(p2), self.point(p3)))
-        det = np.linalg.det(mat)
-        if np.abs(det) < epsilon:
-            collinear = True
-        return collinear
+    # def point(self, p):
+    #     return np.array([p[0], p[1], 1.]).reshape(1, -1)
+    #
+    # def collinearity_check(self, p1, p2, p3, epsilon=1e-2):
+    #     collinear = False
+    #     pp1 = np.array([p1[0], p1[1], self.TARGET_ALTITUDE]).reshape(1, -1)
+    #     pp2 = np.array([p2[0], p2[1], self.TARGET_ALTITUDE]).reshape(1, -1)
+    #     pp3 = np.array([p3[0], p3[1], self.TARGET_ALTITUDE]).reshape(1, -1)
+    #     mat = np.vstack((pp1, pp2, pp3 ))
+    #     # mat = np.vstack((self.point(p1), self.point(p2), self.point(p3)))
+    #     det = np.linalg.det(mat)
+    #     if np.abs(det) < epsilon:
+    #         collinear = True
+    #     return collinear
 
     def prune_path(self, path, err=.1):
         pruned_path = [p for p in path] 
         i = 0 
-        while i < len(pruned_path) - 2: 
-            p1 = self.point(pruned_path[i]) 
-            p2 = self.point(pruned_path[i+1]) 
-            p3 = self.point(pruned_path[i+2]) 
-            if self.collinearity_check(p1, p2, p3, err):
-                pruned_path.remove(pruned_path[i+1]) 
+        while i < (len(pruned_path) - 2):
+            p1 = np.array([pruned_path[i  ][0], pruned_path[i  ][1], self.TARGET_ALTITUDE]).reshape(1, -1)
+            p2 = np.array([pruned_path[i+1][0], pruned_path[i+1][1], self.TARGET_ALTITUDE]).reshape(1, -1)
+            p3 = np.array([pruned_path[i+2][0], pruned_path[i+2][1], self.TARGET_ALTITUDE]).reshape(1, -1)
+            collinear = False
+            mat = np.vstack((p1, p2, p3))
+            det = np.linalg.det(mat)
+            if np.abs(det) < err:
+                collinear = True
+            if collinear:
+                pruned_path.remove(pruned_path[i+1])
             else: 
                 i += 1
         return pruned_path
@@ -242,37 +251,28 @@ class MotionPlanning(Drone):
         """
         self.flight_state = States.PLANNING
         print("Searching for a path ...")
-        TARGET_ALTITUDE = 5
-        SAFETY_DISTANCE = 5
+        TARGET_ALTITUDE = self.TARGET_ALTITUDE
+        SAFETY_DISTANCE = self.SAFETY_DISTANCE
 
         self.target_position[2] = TARGET_ALTITUDE
 
         # # TODO: read lat0, lon0 from colliders into floating point values
         # q = []
         f = open(self.filename, 'r')
-        q = f.readline() # north, east, alt, d_north, d_east, d_alt
+        q = f.readline()
         f.close()
         q = q.split(' ')
         lat0 = np.float(q[1][:-1])
         lon0 = np.float(q[3])
-        print(q[0], q[1][:-1], q[2], q[3])
-        print( lat0, lon0)
+
         # TODO: set home position to (lon0, lat0, 0)
-        print(self.global_home)
-        print(self.local_home)
         self.set_home_position(lon0, lat0, 0)
-        print(self.global_home)
-        print(self.local_home)
 
         # TODO: retrieve current global position
         current_global_position = self.global_position
-        print(self.global_home)
-        print(self.local_home)
 
         # TODO: convert to current local position using global_to_local()
         current_local_position = global_to_local(self.global_position, self.global_home)
-        print(self.global_home)
-        print(self.local_home)
 
         print('global home {0}, position {1}, local position {2}'.format(
                 self.global_home,
@@ -290,38 +290,42 @@ class MotionPlanning(Drone):
         grid, north_offset, east_offset = create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
         # Define starting point on the grid (this is just grid center)
-        grid_start = (-north_offset, -east_offset)
-        # start_ne = (25,  100)
-        # grid_start = start_ne
+        # grid_start = (-north_offset, -east_offset)
+        start_ne = (25,  100)
+        grid_start = start_ne
         # TODO: convert start position to current position rather than map center
-        # self.start = current_global_position
-        
+        # grid_start =  (int(np.floor(abs(current_local_position[0]))), int(np.floor(abs(current_local_position[1]))))
+
         # Set goal as some arbitrary position on the grid
-        goal_ne = (750., 770.)
-        grid_goal = (-north_offset + 90, -east_offset + 90)
-        # grid_goal = goal_ne
+        goal_ne = (  33,   107)
+        # grid_goal = (grid_start[0] + 5,  grid_start[1] + 5)
+        grid_goal = goal_ne
         # TODO: adapt to set goal as latitude / longitude position and convert
+        # grid_goal = self.local_to_global(-east_offset + 10, -north_offset + 10, TARGET_ALTITUDE)
 
         # Run A* to find a path from start to goal
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
         # or move to a different search space such as a graph (not done here)
         print('Local Start and Goal: ', grid_start, grid_goal)
         path, _ = a_star(grid, heuristic, grid_start, grid_goal)
+        print("Path:")
+        print(path)
+        print("\n")
         # TODO: prune path to minimize number of waypoints
-        # path = self.prune_path(path)
+        path = self.prune_path(path)
+        print("Pruned Path:")
+        print(path)
+        print("\n")
 
         # TODO (if you're feeling ambitious): Try a different approach altogether!
 
         # Convert path to waypoints
-        waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
+        # waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
+        waypoints = [[p[0], p[1], TARGET_ALTITUDE, 0] for p in path]
+        print("Waypoints:")
         print(waypoints)
-        waypoints = self.prune_path(waypoints)
-        print('\n', waypoints)
-        waypoints =  waypoints.append(grid_start)
-        print('\n', waypoints)
-        waypoints =  waypoints.append(grid_goal)
-        print('\n', waypoints)
-        # waypoints = path
+        print("\n")
+
         # Set self.waypoints
         self.waypoints = waypoints
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
