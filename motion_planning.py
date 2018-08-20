@@ -291,13 +291,15 @@ class MotionPlanning(Drone):
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
         # Define starting point on the grid (this is just grid center)
         # grid_start = (-north_offset, -east_offset)
-        start_ne = (25,  100)
-        grid_start = start_ne
+        # start_ne = (25,  100)
+        # grid_start = start_ne
         # TODO: convert start position to current position rather than map center
-        # grid_start =  (int(np.floor(abs(current_local_position[0]))), int(np.floor(abs(current_local_position[1]))))
+        grid_start =  (int(np.floor(abs(current_local_position[0]))) ,
+                       int(np.floor(abs(current_local_position[1]))) )
+
 
         # Set goal as some arbitrary position on the grid
-        goal_ne = (  33,   107)
+        goal_ne = (grid_start[0] +  100 , grid_start[1] -  30)
         # grid_goal = (grid_start[0] + 5,  grid_start[1] + 5)
         grid_goal = goal_ne
         # TODO: adapt to set goal as latitude / longitude position and convert
@@ -306,8 +308,10 @@ class MotionPlanning(Drone):
         # Run A* to find a path from start to goal
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
         # or move to a different search space such as a graph (not done here)
-        print('Local Start and Goal: ', grid_start, grid_goal)
+        # print('Local Start and Goal: ', grid_start, grid_goal)
         path, _ = a_star(grid, heuristic, grid_start, grid_goal)
+        print('Local Start and Goal: ', grid_start, grid_goal)
+        # path, _ = a_star(data, heuristic, grid_start, grid_goal)
         print("Path:")
         print(path)
         print("\n")
