@@ -2,7 +2,8 @@
 ![Quad Image](./misc/enroute.png)
 
 ---
-
+# Required before you run the code!!
+## In another terminal run ```python -m visdom.server```
 
 # Required Steps for a Passing Submission:
 1. Load the 2.5D map in the colliders.csv file describing the environment.
