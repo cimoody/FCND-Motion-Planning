@@ -3,7 +3,7 @@
 
 ---
 # Required before you run the code!!
-## In another terminal run ```python -m visdom.server```
+## In another terminal run ```python -m visdom.server``` and open ```http://localhost:8097``` in browser.
 
 # Required Steps for a Passing Submission:
 1. Load the 2.5D map in the colliders.csv file describing the environment.
@@ -20,12 +20,8 @@
 
 ---
 ### Writeup / README
-
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  
-
-You're reading it! Below I describe how I addressed each rubric point and where in my code each point is handled.
-
 ### Explain the Starter Code
+
 
 #### 1. Explain the functionality of what's provided in `motion_planning.py` and `planning_utils.py`
 These scripts contain a basic planning implementation that includes...
