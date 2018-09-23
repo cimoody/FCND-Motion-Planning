@@ -13,7 +13,7 @@ and one of the altitude
 
 ![Plot of drone altitude while flying](./misc/GraphOfAltitude.jpeg)
 
- 
+--- 
 # Required Steps for a Passing Submission:
 1. Load the 2.5D map in the colliders.csv file describing the environment.
 2. Discretize the environment into a grid or graph representation.
@@ -41,6 +41,7 @@ were added in the code to explain each function.
 
 ### Implementing Your Path Planning Algorithm
 
+---
 #### 1. Set your global home position
 The first line of the csv file was read and the floating point values extracted using the code:
 
@@ -60,6 +61,7 @@ Here is the map the program uses!
 
 ![Model of SF](./misc/ModelOfSF.jpeg)
 
+---
 #### 2. Set your current local position
 The local position to the global home position is set and checked using 
 
@@ -67,8 +69,7 @@ The local position to the global home position is set and checked using
 
 and using the north and east offsets in the grid.
 
-
-
+---
 #### 3. Set grid start position from local position
 The grid start was set using the following code:
 ```     
@@ -81,8 +82,8 @@ The grid start was set using the following code:
  It's a little roundabout, but it works. 
  
  ![Here's the start position](./misc/StartPosition4Drone.jpeg) 
- 
-        
+
+---  
 #### 4. Set grid goal position from geodetic coords
 The grid goal was found by manual flight to another intersection.
 
@@ -100,12 +101,12 @@ and set using this code and center appropriately by subtracting off the offsets 
         drone_end_local = global_to_local(drone_end_global, self.global_home)
         grid_goal = (-north_offset + int(drone_end_local[0]), -east_offset + int(drone_end_local[1]))
 ```
-
+---
 #### 5. Modify A* to include diagonal motion
  The A* algorithm was modified to include direct diagonal motion on the NE, NW, SE, SW directions and the 
  steps were weighted by 1/sqrt(2). Additional valid action requirements were also added in the planning_utils.py file.
 
-
+---
 #### 6. Cull waypoints 
 The path was pruned using a function designed to use collinearity and tuned by adjusting 
 the acceptable error. 
@@ -116,7 +117,10 @@ Pruned Path:  [(316, 445), (198, 327), (174, 295),
                 (174, 273), (156, 233), (146, 212)]
 ```
 
+
+------
 ### Execute the flight
+---
 #### 1. Does it work?
 It works!
 
@@ -127,12 +131,12 @@ The drone leaves the starting position below
 and arrives at the final location!
 
 ![Picture of drone at goal](./misc/DroneAtFinalLocation.jpeg)
-
+---
 ### Double check that you've met specifications for each of the [rubric](https://review.udacity.com/#!/rubrics/1534/view) points.
  
 IT DOES!!
- 
- 
+
+ ---
 # Extra Challenges: Real World Planning
 This is a nice idea that may have been possible if I could have gotten help understanding the python errors three 
 months ago.
