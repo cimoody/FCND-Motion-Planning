@@ -117,13 +117,16 @@ def a_star(grid, h, start, goal):
         item = queue.get()
         current_node = item[1]
         # print(" Current node:")
-        # print(type(current_node))
+        # print((current_node))
         # print("  Start:")
-        # print(type(start))
+        # print((start))
         if current_node == start:
             current_cost = 0.0
         else:              
             current_cost = branch[current_node][0]
+            # print(" Current node:")
+            # print((current_node))
+
             
         if current_node == goal:        
             print('Found a path.')
