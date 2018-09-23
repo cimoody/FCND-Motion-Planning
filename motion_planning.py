@@ -74,6 +74,8 @@ class MotionPlanning(Drone):
         self.register_callback(MsgID.LOCAL_POSITION, self.local_position_callback)
         self.register_callback(MsgID.LOCAL_VELOCITY, self.velocity_callback)
         self.register_callback(MsgID.STATE, self.state_callback)
+        self.register_callback(MsgID.LOCAL_POSITION, self.update_ne_plot)
+        self.register_callback(MsgID.LOCAL_POSITION, self.update_d_plot)
 
     def update_ne_plot(self):
         """ 
@@ -201,19 +203,6 @@ class MotionPlanning(Drone):
         data = msgpack.dumps(self.waypoints)
         self.connection._master.write(data)
 
-    # def global_to_local(self):
-    #     (east_home, north_home, _, _) = utm.from_latlon(self.global_home[1], self.global_home[0])
-    #     (east, north, _, _) = utm.from_latlon(self.global_position[1], self.global_position[0])
-    #     local_position = np.array([north - north_home, east - east_home, -(self.global_position[2] - self.global_home[2])])
-    #     return local_position
-
-    # def local_to_global(self, east, north):
-    #     (east_home, north_home, zone_number, zone_letter) = utm.from_latlon(
-    #                                                     self.global_home[1], self.global_home[0])
-    #     (lat, lon) = utm.to_latlon(east + east_home, north + north_home, zone_number, zone_letter)
-    #     global_position = np.array([lon, lat, -(self.local_home[2] - self.global_home[2])])
-    #     return global_position
-
     # def point(self, p):
     #     return np.array([p[0], p[1], 1.]).reshape(1, -1)
     #
@@ -230,6 +219,12 @@ class MotionPlanning(Drone):
     #     return collinear
 
     def prune_path(self, path, err=.1):
+        """
+        Prunes the path when given a path
+        :param path: list of waypoint created by a_star()
+        :param err: error parameter - set it larger from less waypoints after pruning
+        :return: the shorted list of waypoints
+        """
         pruned_path = [p for p in path] 
         i = 0 
         while i < (len(pruned_path) - 2):
@@ -259,8 +254,7 @@ class MotionPlanning(Drone):
 
         self.target_position[2] = TARGET_ALTITUDE
 
-        # # TODO: read lat0, lon0 from colliders into floating point values
-        # q = []
+        # TODO: read lat0, lon0 from colliders into floating point values
         f = open(self.filename, 'r')
         q = f.readline()
         f.close()
@@ -355,9 +349,11 @@ class MotionPlanning(Drone):
         print('Local Start and Goal: ', grid_start, grid_goal)
         path, _ = a_star(grid, heuristic, grid_start, grid_goal)
         print("Path: ", path)
+        print("Length of path: ", len(path))
         # TODO: prune path to minimize number of waypoints
         # TODO (if you're feeling ambitious): Try a different approach altogether!
         pruned_path = self.prune_path(path, 100.)
+        print("Pruned Path: ", pruned_path)
         # Convert path to waypoints
         waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in pruned_path]
         # Set self.waypoints
