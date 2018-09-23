@@ -324,45 +324,42 @@ class MotionPlanning(Drone):
         grid, north_offset, east_offset = create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
         # Define starting point on the grid (this is just grid center)
-        grid_start = (-north_offset, -east_offset)
+        # grid_start = (-north_offset, -east_offset)
 
         # TODO: convert start position to current position rather than map center
-        Lat = self._latitude
-        Lon = self._longitude
-        Alt = -self._altitude
-        print("Alt: ", Alt, " , Lat: ", Lat, " , Lon: ", Lon)
-        drone_start_global =  (Lon, Lat, -Alt)
+        drone_start_global =  (self._longitude, self._latitude, 0.0)
         self.set_home_position(drone_start_global[0], drone_start_global[1], drone_start_global[2])
         drone_start_local = (global_to_local(drone_start_global, self.global_home))
-        drone_start_local = ((drone_start_local[0]) - north_offset, (drone_start_local[1]) - east_offset, 0.0)
-
+        drone_start_local = (int(drone_start_local[0]) - north_offset, int(drone_start_local[1]) - east_offset)
+        grid_start = drone_start_local
         print("Drone Start", drone_start_global,"\n", drone_start_local)
         print("drone_start_global", drone_start_global)
         print("drone_start_local", drone_start_local)
 
         # Set goal as some arbitrary position on the grid
-        grid_goal = (grid_start[0] + 10., grid_start[1] + 10.)
-        drone_end_local =  (drone_start_local[0] + 10., drone_start_local[1] + 10., self.TARGET_ALTITUDE)
-        print("drone_end_local: ", drone_end_local)
+        Lat = 37.79096 # picked locatiion by flying around #
+        Lon = -122.40012 # picked location by flying around #
+        Alt = -self._altitude
+        print("Alt: ", Alt, " , Lat: ", Lat, " , Lon: ", Lon)
+        drone_end_global = (Lon, Lat, 0.)
+        drone_end_local = global_to_local(drone_end_global, self.global_home)
+        grid_goal = (-north_offset + int(drone_end_local[0]), -east_offset + int(drone_end_local[1]))
+
+        print("drone_end_local: ", drone_end_local, grid_goal)
 
         # TODO: adapt to set goal as latitude / longitude position and convert
 
         # Run A* to find a path from start to goal
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
         # or move to a different search space such as a graph (not done here)
-        # print('Local Start and Goal: ', grid_start, grid_goal)
-        # path, _ = a_star(grid, heuristic, grid_start, grid_goal)
-        drone_start = (int(drone_start_local[0]), int(drone_start_local[1]))
-        drone_stop = (drone_start[0] + 10, drone_start[1] + 10)
-        print('Local Start and Goal: ', drone_start, drone_stop)
-        path, _ = a_star(grid, heuristic, (drone_start_local[0], drone_start_local[1]),
-                         (drone_end_local[0], drone_end_local[1]))
+        print('Local Start and Goal: ', grid_start, grid_goal)
+        path, _ = a_star(grid, heuristic, grid_start, grid_goal)
         print("Path: ", path)
         # TODO: prune path to minimize number of waypoints
         # TODO (if you're feeling ambitious): Try a different approach altogether!
-
+        pruned_path = self.prune_path(path, 100.)
         # Convert path to waypoints
-        waypoints = [[p[0], p[1], TARGET_ALTITUDE, 0] for p in path]
+        waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in pruned_path]
         # Set self.waypoints
         self.waypoints = waypoints
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
