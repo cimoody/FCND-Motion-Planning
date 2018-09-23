@@ -2,8 +2,12 @@
 ![Quad Image](./misc/enroute.png)
 
 ---
+
 # Acknowledgements
 #### I would like to thank a few people that actually took the time to help me understand python and finish this project after months of not being able to get help: @Ayshine, @Nouman (many thanks - your code helped me finish the last of the debugging), and @'Shubham Rana'
+
+---
+
 # ** Required before you run the code!! \*\*
 ### In another terminal run ```python -m visdom.server``` and open ```http://localhost:8097``` in browser.
 It will create these two plots:
